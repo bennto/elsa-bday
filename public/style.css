@@ -73,6 +73,33 @@ header h1 {
   font-size: 1.05rem;
   opacity: .9;
 }
+
+/* ---- Elsa name: wave + rainbow ---- */
+.name-animate { display: inline; }
+.name-animate span {
+  display: inline-block;
+  animation:
+    name-wave    1s   ease-in-out infinite,
+    name-rainbow 3s   linear     infinite;
+}
+.name-animate span:nth-child(1) { animation-delay: 0s,     0s; }
+.name-animate span:nth-child(2) { animation-delay: 0.18s,  0.75s; }
+.name-animate span:nth-child(3) { animation-delay: 0.36s,  1.5s; }
+.name-animate span:nth-child(4) { animation-delay: 0.54s,  2.25s; }
+
+@keyframes name-wave {
+  0%, 100% { transform: translateY(0)    scaleY(1); }
+  50%       { transform: translateY(-14px) scaleY(1.08); }
+}
+@keyframes name-rainbow {
+  0%        { color: #ff3366; }
+  16.67%    { color: #ff9900; }
+  33.33%    { color: #ffe600; }
+  50%       { color: #33ee66; }
+  66.67%    { color: #33aaff; }
+  83.33%    { color: #cc44ff; }
+  100%      { color: #ff3366; }
+}
 .balloon {
   font-size: clamp(2rem, 6vw, 3.5rem);
   animation: bob 3s ease-in-out infinite;
