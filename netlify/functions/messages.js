@@ -11,15 +11,24 @@ const JSON_HEADERS = {
   'Access-Control-Allow-Origin': '*',
 };
 
+// ---- Blob store helper ----
+function getBlobStore(name) {
+  return getStore({
+    name,
+    siteID: process.env.NETLIFY_SITE_ID,
+    token: process.env.NETLIFY_TOKEN,
+  });
+}
+
 // ---- Storage helpers ----
 async function getMessages() {
-  const store = getStore('birthday');
+  const store = getBlobStore('birthday');
   const raw = await store.get('messages');
   return raw ? JSON.parse(raw) : [];
 }
 
 async function saveMessages(messages) {
-  const store = getStore('birthday');
+  const store = getBlobStore('birthday');
   await store.set('messages', JSON.stringify(messages));
 }
 
@@ -135,7 +144,7 @@ exports.handler = async (event) => {
         }
         const ext = path.extname(parsed.fileInfo.filename || '').toLowerCase() || '.jpg';
         const key = `${Date.now()}-${crypto.randomBytes(4).toString('hex')}${ext}`;
-        const imageStore = getStore('images');
+        const imageStore = getBlobStore('images');
         await imageStore.set(key, parsed.fileData, {
           metadata: { contentType: mimeType },
         });
@@ -175,7 +184,7 @@ exports.handler = async (event) => {
 
       if (removed.image) {
         const key = removed.image.replace('/uploads/', '');
-        const imageStore = getStore('images');
+        const imageStore = getBlobStore('images');
         try { await imageStore.delete(key); } catch { /* best-effort */ }
       }
 

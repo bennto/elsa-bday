@@ -7,7 +7,11 @@ exports.handler = async (event) => {
       return { statusCode: 400, body: 'Missing key' };
     }
 
-    const imageStore = getStore('images');
+    const imageStore = getStore({
+    name: 'images',
+    siteID: process.env.NETLIFY_SITE_ID,
+    token: process.env.NETLIFY_TOKEN,
+  });
     const result = await imageStore.getWithMetadata(key, { type: 'arrayBuffer' });
 
     if (!result || result.data === null) {
