@@ -66,123 +66,133 @@ function parseMultipart(event) {
 
 // ---- Handler ----
 exports.handler = async (event) => {
-  if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 204, headers: JSON_HEADERS };
-  }
+  try {
+    if (event.httpMethod === 'OPTIONS') {
+      return { statusCode: 204, headers: JSON_HEADERS };
+    }
 
-  // GET — list all messages (newest first)
-  if (event.httpMethod === 'GET') {
-    const messages = await getMessages();
-    return {
-      statusCode: 200,
-      headers: JSON_HEADERS,
-      body: JSON.stringify(messages.slice().reverse()),
-    };
-  }
-
-  // POST — create a new message
-  if (event.httpMethod === 'POST') {
-    const contentType =
-      event.headers['content-type'] || event.headers['Content-Type'] || '';
-    if (!contentType.includes('multipart/form-data')) {
+    // GET — list all messages (newest first)
+    if (event.httpMethod === 'GET') {
+      const messages = await getMessages();
       return {
-        statusCode: 400,
+        statusCode: 200,
         headers: JSON_HEADERS,
-        body: JSON.stringify({ error: 'Expected multipart/form-data' }),
+        body: JSON.stringify(messages.slice().reverse()),
       };
     }
 
-    let parsed;
-    try {
-      parsed = await parseMultipart(event);
-    } catch {
-      return {
-        statusCode: 400,
-        headers: JSON_HEADERS,
-        body: JSON.stringify({ error: 'Failed to parse request' }),
-      };
-    }
-
-    if (parsed.fileTooLarge) {
-      return {
-        statusCode: 400,
-        headers: JSON_HEADERS,
-        body: JSON.stringify({ error: 'Image must be under 5 MB' }),
-      };
-    }
-
-    const name = (parsed.fields.name || '').trim().slice(0, 60);
-    const text = (parsed.fields.text || '').trim().slice(0, 1000);
-
-    if (!name) {
-      return { statusCode: 400, headers: JSON_HEADERS, body: JSON.stringify({ error: 'Name is required' }) };
-    }
-    if (!text) {
-      return { statusCode: 400, headers: JSON_HEADERS, body: JSON.stringify({ error: 'Message text is required' }) };
-    }
-
-    let imagePath = null;
-    if (parsed.fileData && parsed.fileInfo) {
-      const mimeType = parsed.fileInfo.mimeType;
-      if (!ALLOWED_MIME.has(mimeType)) {
+    // POST — create a new message
+    if (event.httpMethod === 'POST') {
+      const contentType =
+        event.headers['content-type'] || event.headers['Content-Type'] || '';
+      if (!contentType.includes('multipart/form-data')) {
         return {
           statusCode: 400,
           headers: JSON_HEADERS,
-          body: JSON.stringify({ error: 'Only image files are allowed' }),
+          body: JSON.stringify({ error: 'Expected multipart/form-data' }),
         };
       }
-      const ext = path.extname(parsed.fileInfo.filename || '').toLowerCase() || '.jpg';
-      const key = `${Date.now()}-${crypto.randomBytes(4).toString('hex')}${ext}`;
-      const imageStore = getStore('images');
-      await imageStore.set(key, parsed.fileData, {
-        metadata: { contentType: mimeType },
-      });
-      imagePath = `/uploads/${key}`;
+
+      let parsed;
+      try {
+        parsed = await parseMultipart(event);
+      } catch (parseErr) {
+        console.error('Multipart parse error:', parseErr);
+        return {
+          statusCode: 400,
+          headers: JSON_HEADERS,
+          body: JSON.stringify({ error: 'Failed to parse request' }),
+        };
+      }
+
+      if (parsed.fileTooLarge) {
+        return {
+          statusCode: 400,
+          headers: JSON_HEADERS,
+          body: JSON.stringify({ error: 'Image must be under 5 MB' }),
+        };
+      }
+
+      const name = (parsed.fields.name || '').trim().slice(0, 60);
+      const text = (parsed.fields.text || '').trim().slice(0, 1000);
+
+      if (!name) {
+        return { statusCode: 400, headers: JSON_HEADERS, body: JSON.stringify({ error: 'Name is required' }) };
+      }
+      if (!text) {
+        return { statusCode: 400, headers: JSON_HEADERS, body: JSON.stringify({ error: 'Message text is required' }) };
+      }
+
+      let imagePath = null;
+      if (parsed.fileData && parsed.fileInfo) {
+        const mimeType = parsed.fileInfo.mimeType;
+        if (!ALLOWED_MIME.has(mimeType)) {
+          return {
+            statusCode: 400,
+            headers: JSON_HEADERS,
+            body: JSON.stringify({ error: 'Only image files are allowed' }),
+          };
+        }
+        const ext = path.extname(parsed.fileInfo.filename || '').toLowerCase() || '.jpg';
+        const key = `${Date.now()}-${crypto.randomBytes(4).toString('hex')}${ext}`;
+        const imageStore = getStore('images');
+        await imageStore.set(key, parsed.fileData, {
+          metadata: { contentType: mimeType },
+        });
+        imagePath = `/uploads/${key}`;
+      }
+
+      const message = {
+        id: Date.now().toString(),
+        name,
+        text,
+        image: imagePath,
+        createdAt: new Date().toISOString(),
+      };
+
+      const messages = await getMessages();
+      messages.push(message);
+      await saveMessages(messages);
+
+      return { statusCode: 201, headers: JSON_HEADERS, body: JSON.stringify(message) };
     }
 
-    const message = {
-      id: Date.now().toString(),
-      name,
-      text,
-      image: imagePath,
-      createdAt: new Date().toISOString(),
+    // DELETE — remove a message by ?id=
+    if (event.httpMethod === 'DELETE') {
+      const id = (event.queryStringParameters || {}).id;
+      if (!id) {
+        return { statusCode: 400, headers: JSON_HEADERS, body: JSON.stringify({ error: 'id required' }) };
+      }
+
+      const messages = await getMessages();
+      const idx = messages.findIndex((m) => m.id === id);
+      if (idx === -1) {
+        return { statusCode: 404, headers: JSON_HEADERS, body: JSON.stringify({ error: 'Not found' }) };
+      }
+
+      const [removed] = messages.splice(idx, 1);
+      await saveMessages(messages);
+
+      if (removed.image) {
+        const key = removed.image.replace('/uploads/', '');
+        const imageStore = getStore('images');
+        try { await imageStore.delete(key); } catch { /* best-effort */ }
+      }
+
+      return { statusCode: 200, headers: JSON_HEADERS, body: JSON.stringify({ ok: true }) };
+    }
+
+    return {
+      statusCode: 405,
+      headers: JSON_HEADERS,
+      body: JSON.stringify({ error: 'Method not allowed' }),
     };
-
-    const messages = await getMessages();
-    messages.push(message);
-    await saveMessages(messages);
-
-    return { statusCode: 201, headers: JSON_HEADERS, body: JSON.stringify(message) };
+  } catch (err) {
+    console.error('Unhandled function error:', err);
+    return {
+      statusCode: 500,
+      headers: JSON_HEADERS,
+      body: JSON.stringify({ error: err.message }),
+    };
   }
-
-  // DELETE — remove a message by ?id=
-  if (event.httpMethod === 'DELETE') {
-    const id = (event.queryStringParameters || {}).id;
-    if (!id) {
-      return { statusCode: 400, headers: JSON_HEADERS, body: JSON.stringify({ error: 'id required' }) };
-    }
-
-    const messages = await getMessages();
-    const idx = messages.findIndex((m) => m.id === id);
-    if (idx === -1) {
-      return { statusCode: 404, headers: JSON_HEADERS, body: JSON.stringify({ error: 'Not found' }) };
-    }
-
-    const [removed] = messages.splice(idx, 1);
-    await saveMessages(messages);
-
-    if (removed.image) {
-      const key = removed.image.replace('/uploads/', '');
-      const imageStore = getStore('images');
-      try { await imageStore.delete(key); } catch { /* best-effort */ }
-    }
-
-    return { statusCode: 200, headers: JSON_HEADERS, body: JSON.stringify({ ok: true }) };
-  }
-
-  return {
-    statusCode: 405,
-    headers: JSON_HEADERS,
-    body: JSON.stringify({ error: 'Method not allowed' }),
-  };
 };

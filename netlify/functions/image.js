@@ -1,15 +1,15 @@
 const { getStore } = require('@netlify/blobs');
 
 exports.handler = async (event) => {
-  const key = (event.queryStringParameters || {}).key;
-  if (!key) {
-    return { statusCode: 400, body: 'Missing key' };
-  }
-
-  const imageStore = getStore('images');
-
   try {
+    const key = (event.queryStringParameters || {}).key;
+    if (!key) {
+      return { statusCode: 400, body: 'Missing key' };
+    }
+
+    const imageStore = getStore('images');
     const result = await imageStore.getWithMetadata(key, { type: 'arrayBuffer' });
+
     if (!result || result.data === null) {
       return { statusCode: 404, body: 'Not found' };
     }
@@ -26,7 +26,8 @@ exports.handler = async (event) => {
       body: buffer.toString('base64'),
       isBase64Encoded: true,
     };
-  } catch {
+  } catch (err) {
+    console.error('Image function error:', err);
     return { statusCode: 404, body: 'Not found' };
   }
 };
