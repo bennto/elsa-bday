@@ -1,22 +1,5 @@
 [build]
   publish = "public"
-  functions = "netlify/functions"
-  command = "npm install"
-
-[functions]
-  node_bundler = "nft"
 
 [dev]
   framework = "#static"
-
-# /api/* → Netlify Functions
-[[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/:splat"
-  status = 200
-
-# /uploads/* → image-serving function (reads from Netlify Blobs)
-[[redirects]]
-  from = "/uploads/*"
-  to = "/.netlify/functions/image?key=:splat"
-  status = 200
