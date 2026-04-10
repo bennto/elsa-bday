@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Happy Birthday Elsa! 🎂</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div class="confetti-container" id="confetti"></div>
+
+  <header>
+    <div class="header-inner">
+      <div class="balloon balloon-left">🎈</div>
+      <div class="header-text">
+        <h1>Happy Birthday, Elsa!</h1>
+        <p class="subtitle">Leave a message to celebrate 🎉</p>
+      </div>
+      <div class="balloon balloon-right">🎈</div>
+    </div>
+  </header>
+
+  <main>
+    <!-- Post form -->
+    <section class="post-form-section">
+      <h2>Write a message</h2>
+      <form id="post-form" enctype="multipart/form-data" novalidate>
+        <div class="form-group">
+          <label for="name">Your name</label>
+          <input
+            type="text"
+            id="name"
+            name="name"
+            placeholder="e.g. Anna"
+            maxlength="60"
+            autocomplete="off"
+            required
+          />
+        </div>
+        <div class="form-group">
+          <label for="text">Your message</label>
+          <textarea
+            id="text"
+            name="text"
+            placeholder="Write something lovely…"
+            maxlength="1000"
+            rows="4"
+            required
+          ></textarea>
+          <span class="char-count" id="char-count">0 / 1000</span>
+        </div>
+        <div class="form-group">
+          <label for="image">Attach a photo <span class="optional">(optional)</span></label>
+          <div class="file-input-wrapper">
+            <input type="file" id="image" name="image" accept="image/*" />
+            <label for="image" class="file-label" id="file-label">
+              <span class="file-icon">📎</span>
+              <span id="file-name">Choose image…</span>
+            </label>
+            <button type="button" class="remove-image" id="remove-image" hidden>✕</button>
+          </div>
+          <div class="image-preview-wrapper" id="image-preview-wrapper" hidden>
+            <img id="image-preview" src="" alt="Preview" />
+          </div>
+        </div>
+        <div class="form-error" id="form-error" hidden></div>
+        <button type="submit" id="submit-btn">
+          <span id="submit-label">Post message</span>
+          <span id="submit-spinner" hidden>Posting…</span>
+        </button>
+      </form>
+    </section>
+
+    <!-- Board -->
+    <section class="board-section">
+      <h2>Birthday board</h2>
+      <div id="board" class="board">
+        <div id="board-loading" class="board-loading">Loading messages…</div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>Made with 💛 for Elsa's birthday</p>
+  </footer>
+
+  <script src="/app.js"></script>
+</body>
+</html>
