@@ -80,12 +80,12 @@ header h1 {
   display: inline-block;
   animation:
     name-wave    1s   ease-in-out infinite,
-    name-rainbow 3s   linear     infinite;
+    name-rainbow 1s   linear     infinite;
 }
 .name-animate span:nth-child(1) { animation-delay: 0s,     0s; }
-.name-animate span:nth-child(2) { animation-delay: 0.18s,  0.75s; }
-.name-animate span:nth-child(3) { animation-delay: 0.36s,  1.5s; }
-.name-animate span:nth-child(4) { animation-delay: 0.54s,  2.25s; }
+.name-animate span:nth-child(2) { animation-delay: 0.18s,  0.25s; }
+.name-animate span:nth-child(3) { animation-delay: 0.36s,  0.5s; }
+.name-animate span:nth-child(4) { animation-delay: 0.54s,  0.75s; }
 
 @keyframes name-wave {
   0%, 100% { transform: translateY(0)    scaleY(1); }
